@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #16171a;
+  --surface: #1f2023;
+  --surface-2: #26282c;
+  --border: #33353a;
+  --border-light: #3d3f45;
+  --text: #ecedee;
+  --text-muted: #9a9ca3;
+  --text-faint: #65676e;
+  --amber: #f2a93b;
+  --amber-dim: #7a5b26;
+  --green: #7fbf6a;
+  --green-dim: #2e4a29;
+  --red: #e2574c;
+  --red-dim: #4a2a27;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+.font-mono {
+  font-family: "IBM Plex Mono", "JetBrains Mono", monospace;
+}
