@@ -31,7 +31,7 @@ export default async function PedidosPage() {
         <div>
           <h1 className="font-display font-bold text-xl mb-1">Pedidos</h1>
           <p className="text-[var(--text-faint)] text-sm">
-            Tudo que o Kayky (e você) já tirou de pedido
+            Tudo que o Kayky, o Yago (e você) já tiraram de pedido
           </p>
         </div>
         <Link href="/pedidos/novo">
