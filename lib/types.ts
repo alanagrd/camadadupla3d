@@ -5,6 +5,14 @@ export interface Config {
   custo_hora_maquina: number;
   margem_padrao_pct: number;
   piso_rhora: number;
+  // máquina detalhada (deriva o R$/h de energia + depreciação)
+  potencia_w: number;
+  tarifa_kwh: number;
+  preco_impressora: number;
+  vida_util_horas: number;
+  // mão de obra e refugo
+  custo_hora_trabalho: number;
+  taxa_falha_pct: number;
   updated_at: string;
 }
 
@@ -30,6 +38,7 @@ export interface Produto {
   id: string;
   nome: string;
   tempo_impressao_min: number;
+  tempo_acabamento_min: number;
   pecas_por_chapa: number;
   perda_extra_pct: number;
   margem_personalizada: number | null;

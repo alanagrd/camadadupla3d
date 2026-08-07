@@ -37,15 +37,31 @@ export function minutosParaHMM(min: number): string {
   return `${h}:${String(m).padStart(2, "0")}`;
 }
 
+// R$/hora de máquina: deriva de energia (W × tarifa) + depreciação
+// (preço da impressora ÷ vida útil em horas). Se esses campos estiverem
+// zerados, cai no valor fixo custo_hora_maquina (retrocompatível).
+export function custoHoraMaquina(config: Config): number {
+  const energia = (numParse(config.potencia_w) / 1000) * numParse(config.tarifa_kwh);
+  const vida = numParse(config.vida_util_horas);
+  const depreciacao = vida > 0 ? numParse(config.preco_impressora) / vida : 0;
+  const derivado = energia + depreciacao;
+  return derivado > 0 ? derivado : numParse(config.custo_hora_maquina);
+}
+
 export interface ResultadoCalculo {
   custoFilamento: number;
   custoPerda: number;
   custoInsumos: number;
   custoMaquinaUnidade: number;
+  custoTrabalhoUnidade: number;
+  custoRefugo: number;
   custoTotalUnidade: number;
+  rhoraMaquina: number;
   margem: number;
   precoSugerido: number;
   lucroUnidade: number;
+  markup: number;
+  margemReal: number;
   receitaPorHora: number;
   lucroPorHora: number;
   precoParaPiso: number;
@@ -76,11 +92,26 @@ export function calcularProduto(
 
   const horas = parseTempoParaMinutos(produto.tempo_impressao_min) / 60;
   const unidades = Math.max(numParse(produto.pecas_por_chapa) || 1, 1);
-  const custoMaquinaChapa = horas * numParse(config.custo_hora_maquina);
+  const rhoraMaquina = custoHoraMaquina(config);
+  const custoMaquinaChapa = horas * rhoraMaquina;
   const custoMaquinaUnidade = custoMaquinaChapa / unidades;
 
+  // mão de obra: tempo de acabamento (min por peça) × R$/h de trabalho
+  const custoTrabalhoUnidade =
+    (parseTempoParaMinutos(produto.tempo_acabamento_min) / 60) *
+    numParse(config.custo_hora_trabalho);
+
+  // refugo: prints que falham queimam material E tempo de máquina
+  const taxaFalha = numParse(config.taxa_falha_pct) / 100;
+  const custoRefugo = (custoFilamento + custoPerda + custoMaquinaUnidade) * taxaFalha;
+
   const custoTotalUnidade =
-    custoFilamento + custoPerda + custoInsumos + custoMaquinaUnidade;
+    custoFilamento +
+    custoPerda +
+    custoInsumos +
+    custoMaquinaUnidade +
+    custoTrabalhoUnidade +
+    custoRefugo;
 
   const margem =
     produto.margem_personalizada != null
@@ -98,6 +129,8 @@ export function calcularProduto(
       : custoTotalUnidade / (1 - margem / 100);
 
   const lucroUnidade = precoSugerido - custoTotalUnidade;
+  const markup = custoTotalUnidade > 0 ? (lucroUnidade / custoTotalUnidade) * 100 : 0;
+  const margemReal = precoSugerido > 0 ? (lucroUnidade / precoSugerido) * 100 : 0;
   const receitaPorHora = horas > 0 ? (precoSugerido * unidades) / horas : 0;
   const lucroPorHora = horas > 0 ? (lucroUnidade * unidades) / horas : 0;
   const precoParaPiso =
@@ -108,10 +141,15 @@ export function calcularProduto(
     custoPerda,
     custoInsumos,
     custoMaquinaUnidade,
+    custoTrabalhoUnidade,
+    custoRefugo,
     custoTotalUnidade,
+    rhoraMaquina,
     margem,
     precoSugerido,
     lucroUnidade,
+    markup,
+    margemReal,
     receitaPorHora,
     lucroPorHora,
     precoParaPiso,

@@ -50,6 +50,9 @@ export default function ProdutoForm({
   const [pecasPorChapa, setPecasPorChapa] = useState(
     String(produtoExistente?.pecas_por_chapa ?? 1)
   );
+  const [tempoAcabamento, setTempoAcabamento] = useState(
+    String(produtoExistente?.tempo_acabamento_min ?? 0)
+  );
   const [perdaExtra, setPerdaExtra] = useState(
     String(produtoExistente?.perda_extra_pct ?? 5)
   );
@@ -83,6 +86,7 @@ export default function ProdutoForm({
       id: produtoExistente?.id ?? "",
       nome,
       tempo_impressao_min: parseTempoParaMinutos(tempo),
+      tempo_acabamento_min: parseFloat(tempoAcabamento.replace(",", ".")) || 0,
       pecas_por_chapa: parseFloat(pecasPorChapa) || 1,
       perda_extra_pct: parseFloat(perdaExtra.replace(",", ".")) || 0,
       margem_personalizada:
@@ -116,6 +120,7 @@ export default function ProdutoForm({
   }, [
     nome,
     tempo,
+    tempoAcabamento,
     pecasPorChapa,
     perdaExtra,
     margemPersonalizada,
@@ -149,6 +154,7 @@ export default function ProdutoForm({
     const payload = {
       nome,
       tempo_impressao_min: parseTempoParaMinutos(tempo),
+      tempo_acabamento_min: parseFloat(tempoAcabamento.replace(",", ".")) || 0,
       pecas_por_chapa: parseFloat(pecasPorChapa) || 1,
       perda_extra_pct: parseFloat(perdaExtra.replace(",", ".")) || 0,
       margem_personalizada:
@@ -287,9 +293,15 @@ export default function ProdutoForm({
           </div>
         </div>
 
-        <div className="mb-4">
-          <Label>Perda extra além da purga — % sobre filamento</Label>
-          <Input type="number" value={perdaExtra} onChange={setPerdaExtra} suffix="%" />
+        <div className="grid grid-cols-2 gap-2.5 mb-4">
+          <div>
+            <Label>Perda extra além da purga — % sobre filamento</Label>
+            <Input type="number" value={perdaExtra} onChange={setPerdaExtra} suffix="%" />
+          </div>
+          <div>
+            <Label>Acabamento (seu tempo por peça)</Label>
+            <Input type="number" value={tempoAcabamento} onChange={setTempoAcabamento} suffix="min" />
+          </div>
         </div>
 
         <div className="h-px bg-[var(--border)] my-4" />
@@ -384,6 +396,8 @@ export default function ProdutoForm({
           <Linha label={`Perda extra`} valor={resultado.custoPerda} />
           <Linha label="Insumos" valor={resultado.custoInsumos} />
           <Linha label="Máquina (rateado)" valor={resultado.custoMaquinaUnidade} />
+          <Linha label="Mão de obra" valor={resultado.custoTrabalhoUnidade} />
+          <Linha label="Refugo (falha)" valor={resultado.custoRefugo} />
           <div className="h-px bg-[var(--border)] my-2" />
           <div className="flex justify-between text-sm font-semibold">
             <span>Custo total</span>
@@ -398,28 +412,52 @@ export default function ProdutoForm({
           <div className="font-display text-2xl font-bold text-[var(--amber)] mb-2.5">
             {brl(resultado.precoSugerido)}
           </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-[var(--text-muted)]">Lucro / peça</span>
-            <span className="font-mono text-[var(--green)]">{brl(resultado.lucroUnidade)}</span>
-          </div>
-          <div className="flex justify-between text-xs mt-1.5">
-            <span className="text-[var(--text-muted)]">Lucro / hora de máquina</span>
-            <span className="font-mono text-[var(--green)]">{brl(resultado.lucroPorHora)}</span>
+          <div className="flex flex-col gap-1.5">
+            <PainelLinha
+              label="Lucro / peça"
+              valor={brl(resultado.lucroUnidade)}
+              cor={resultado.lucroUnidade >= 0 ? "var(--green)" : "var(--red)"}
+            />
+            <PainelLinha
+              label="Margem real"
+              valor={`${resultado.margemReal.toFixed(0)}%`}
+              cor={resultado.margemReal >= 0 ? "var(--green)" : "var(--red)"}
+            />
+            <PainelLinha label="Markup sobre o custo" valor={`${resultado.markup.toFixed(0)}%`} />
+            <PainelLinha
+              label="Lucro / hora de máquina"
+              valor={brl(resultado.lucroPorHora)}
+              cor={resultado.lucroPorHora >= 0 ? "var(--green)" : "var(--red)"}
+            />
           </div>
         </Card>
 
-        {piso > 0 && resultado.horas > 0 && (
-          <Card className="p-3">
-            <p className="text-[11px] text-[var(--text-faint)] leading-relaxed">
-              Pra bater o piso de {brl(piso)}/h com esse tempo e esse tanto de peça
-              por chapa, o preço mínimo seria{" "}
-              <span className="font-mono text-[var(--text-muted)]">
-                {brl(resultado.precoParaPiso)}
-              </span>
-              .
-            </p>
-          </Card>
-        )}
+        <Card className="p-4">
+          <SectionTitle>Saúde do produto</SectionTitle>
+          <div className="flex flex-col gap-1.5">
+            <PainelLinha label="Custo / hora de máquina" valor={`${brl(resultado.rhoraMaquina)}/h`} />
+            <PainelLinha
+              label="Você recebe / hora"
+              valor={`${brl(resultado.receitaPorHora)}/h`}
+              cor={cor}
+            />
+            <PainelLinha label="Piso definido" valor={`${brl(piso)}/h`} />
+          </div>
+          {piso > 0 && (
+            <div
+              className="mt-3 rounded-lg p-2.5 text-[11px] leading-relaxed"
+              style={{ background: `${cor}18`, color: cor }}
+            >
+              {nivel.ok
+                ? `Preço saudável — está ${nivel.label.toLowerCase()} (acima do piso de ${brl(
+                    piso
+                  )}/h).`
+                : `Abaixo do piso de ${brl(piso)}/h. Pra bater o piso, o mínimo seria ${brl(
+                    resultado.precoParaPiso
+                  )} — ou aumente peças por chapa / reduza o tempo.`}
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
@@ -430,6 +468,17 @@ function Linha({ label, valor }: { label: string; valor: number }) {
     <div className="flex justify-between text-xs mb-1.5">
       <span className="text-[var(--text-muted)]">{label}</span>
       <span className="font-mono">{brl(valor)}</span>
+    </div>
+  );
+}
+
+function PainelLinha({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
+  return (
+    <div className="flex justify-between text-xs">
+      <span className="text-[var(--text-muted)]">{label}</span>
+      <span className="font-mono" style={cor ? { color: cor } : undefined}>
+        {valor}
+      </span>
     </div>
   );
 }
