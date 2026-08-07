@@ -4,8 +4,8 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Input, Label, Btn, Select, SectionTitle } from "@/components/ui";
-import { calcularProduto, brl, minutosParaHMM, parseTempoParaMinutos } from "@/lib/calc";
-import { Plus, Trash2, Calculator, Save } from "lucide-react";
+import { calcularProduto, brl, minutosParaHMM, parseTempoParaMinutos, numParse } from "@/lib/calc";
+import { Plus, Trash2, Calculator, Save, CheckCircle2, AlertTriangle } from "lucide-react";
 import type {
   Produto,
   ProdutoComponente,
@@ -206,13 +206,22 @@ export default function ProdutoForm({
     router.refresh();
   }
 
-  const piso = config.piso_rhora;
-  const cor =
-    resultado.receitaPorHora >= piso * 1.5
-      ? "var(--green)"
-      : resultado.receitaPorHora >= piso
-      ? "var(--amber)"
-      : "var(--red)";
+  const piso = numParse(config.piso_rhora);
+  const rhora = resultado.receitaPorHora;
+  const nivel =
+    piso <= 0
+      ? { label: "—", cor: "var(--text-muted)", ok: true }
+      : rhora >= piso * 2
+      ? { label: "Ótimo", cor: "var(--green)", ok: true }
+      : rhora >= piso * 1.3
+      ? { label: "Bom", cor: "var(--green)", ok: true }
+      : rhora >= piso
+      ? { label: "No piso", cor: "var(--amber)", ok: true }
+      : { label: "Abaixo do piso", cor: "var(--red)", ok: false };
+  const cor = nivel.cor;
+  const gaugeMax = piso * 3;
+  const fillPct =
+    gaugeMax > 0 ? Math.max(0, Math.min(1, rhora / gaugeMax)) * 100 : 0;
 
   return (
     <div className="grid grid-cols-[1fr_320px] gap-4">
@@ -333,12 +342,40 @@ export default function ProdutoForm({
             borderColor: `${cor}44`,
           }}
         >
-          <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] uppercase mb-2">
-            <Calculator size={12} /> R$ por hora de máquina
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] uppercase">
+              <Calculator size={12} /> R$ por hora de máquina
+            </div>
+            <span
+              className="flex items-center gap-1 text-[11px] font-semibold"
+              style={{ color: cor }}
+            >
+              {nivel.ok ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+              {nivel.label}
+            </span>
           </div>
           <div className="font-display text-[28px] font-bold" style={{ color: cor }}>
             {brl(resultado.receitaPorHora)}
           </div>
+          {piso > 0 && (
+            <div className="mt-3">
+              <div className="relative h-1.5 rounded-full bg-[var(--surface-2)] overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{ width: `${fillPct}%`, background: cor }}
+                />
+                <div
+                  className="absolute inset-y-0 w-px bg-[var(--text-faint)]"
+                  style={{ left: "33.33%" }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-[var(--text-faint)] mt-1">
+                <span>R$0</span>
+                <span>piso {brl(piso)}</span>
+                <span>{brl(gaugeMax)}+</span>
+              </div>
+            </div>
+          )}
         </Card>
 
         <Card className="p-4">
@@ -365,7 +402,24 @@ export default function ProdutoForm({
             <span className="text-[var(--text-muted)]">Lucro / peça</span>
             <span className="font-mono text-[var(--green)]">{brl(resultado.lucroUnidade)}</span>
           </div>
+          <div className="flex justify-between text-xs mt-1.5">
+            <span className="text-[var(--text-muted)]">Lucro / hora de máquina</span>
+            <span className="font-mono text-[var(--green)]">{brl(resultado.lucroPorHora)}</span>
+          </div>
         </Card>
+
+        {piso > 0 && resultado.horas > 0 && (
+          <Card className="p-3">
+            <p className="text-[11px] text-[var(--text-faint)] leading-relaxed">
+              Pra bater o piso de {brl(piso)}/h com esse tempo e esse tanto de peça
+              por chapa, o preço mínimo seria{" "}
+              <span className="font-mono text-[var(--text-muted)]">
+                {brl(resultado.precoParaPiso)}
+              </span>
+              .
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   );
