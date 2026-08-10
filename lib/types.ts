@@ -1,16 +1,14 @@
-// Tipos batendo 1:1 com camadadupla3d_schema.sql (já testado no banco)
+// Tipos batendo 1:1 com camadadupla3d_schema.sql
 
 export interface Config {
   id: true;
   custo_hora_maquina: number;
   margem_padrao_pct: number;
   piso_rhora: number;
-  // máquina detalhada (deriva o R$/h de energia + depreciação)
   potencia_w: number;
   tarifa_kwh: number;
   preco_impressora: number;
   vida_util_horas: number;
-  // mão de obra e refugo
   custo_hora_trabalho: number;
   taxa_falha_pct: number;
   updated_at: string;
@@ -91,6 +89,7 @@ export type PedidoCanal = "instagram" | "whatsapp" | "pessoal" | "outro";
 export interface Pedido {
   id: string;
   cliente_id: string | null;
+  vendedor_id: string | null;
   status: PedidoStatus;
   canal: PedidoCanal | null;
   prazo_entrega: string | null;

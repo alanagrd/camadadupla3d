@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Input, Label, Btn, Select, SectionTitle } from "@/components/ui";
 import { Plus, Trash2, UserPlus } from "lucide-react";
-import type { Cliente, Produto, PedidoCanal, ClienteTipo } from "@/lib/types";
+import type { Cliente, Produto, PedidoCanal, ClienteTipo, ContaCrianca } from "@/lib/types";
 
 interface ItemForm {
   produto_id: string;
@@ -17,9 +17,11 @@ interface ItemForm {
 export default function NovoPedidoForm({
   clientes,
   produtos,
+  criancas,
 }: {
   clientes: Cliente[];
   produtos: Produto[];
+  criancas: ContaCrianca[];
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -33,6 +35,7 @@ export default function NovoPedidoForm({
   const [canal, setCanal] = useState<PedidoCanal>("whatsapp");
   const [prazo, setPrazo] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [vendedorId, setVendedorId] = useState("");
   const [itens, setItens] = useState<ItemForm[]>([
     { produto_id: produtos[0]?.id ?? "", nome_personalizado: "", quantidade: "1", preco_unitario: "" },
   ]);
@@ -92,6 +95,7 @@ export default function NovoPedidoForm({
         prazo_entrega: prazo || null,
         observacoes: observacoes || null,
         status: "novo",
+        vendedor_id: vendedorId || null,
       })
       .select("id")
       .single();
@@ -119,6 +123,18 @@ export default function NovoPedidoForm({
         setSalvando(false);
         return;
       }
+    }
+
+    // Lança automaticamente nas contas da criança vendedora
+    if (vendedorId && total > 0) {
+      await supabase.from("movimentacoes_conta").insert({
+        crianca_id: vendedorId,
+        pedido_item_id: null,
+        tipo: "venda",
+        pote: "gastar",
+        valor: total,
+        descricao: `Pedido #${pedido.id.slice(0, 8)}`,
+      });
     }
 
     setSalvando(false);
@@ -237,7 +253,18 @@ export default function NovoPedidoForm({
 
         <div className="h-px bg-[var(--border)] my-4" />
 
-        <div className="grid grid-cols-2 gap-2.5 mb-4">
+        <div className="grid grid-cols-3 gap-2.5 mb-4">
+          <div>
+            <Label>Vendedor</Label>
+            <Select value={vendedorId} onChange={setVendedorId}>
+              <option value="">Sem vendedor</option>
+              {criancas.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </Select>
+          </div>
           <div>
             <Label>Canal</Label>
             <Select value={canal} onChange={(v) => setCanal(v as PedidoCanal)}>
@@ -270,6 +297,15 @@ export default function NovoPedidoForm({
         <div className="font-display text-2xl font-bold text-[var(--amber)]">
           {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </div>
+        {vendedorId && (
+          <div className="mt-3 text-xs text-[var(--text-faint)] border-t border-[var(--border)] pt-2">
+            Será lançado nas contas de{" "}
+            <span className="text-[var(--text-muted)] font-medium">
+              {criancas.find((c) => c.id === vendedorId)?.nome}
+            </span>{" "}
+            ao salvar.
+          </div>
+        )}
       </Card>
     </div>
   );

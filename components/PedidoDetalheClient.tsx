@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Badge, Btn, Input, Select, SectionTitle } from "@/components/ui";
 import { brl } from "@/lib/calc";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
+import Link from "next/link";
 import type {
   Pedido,
   PedidoItem,
@@ -27,10 +28,12 @@ export default function PedidoDetalheClient({
   pedido,
   itens,
   pagamentos,
+  vendedorNome,
 }: {
   pedido: Pedido & { clientes: Cliente | null };
   itens: (PedidoItem & { produtos: { nome: string } | null })[];
   pagamentos: Pagamento[];
+  vendedorNome?: string | null;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -77,26 +80,40 @@ export default function PedidoDetalheClient({
           <h1 className="font-display font-bold text-xl mb-1">
             {pedido.clientes?.nome ?? "Sem cliente"}
           </h1>
-          <p className="text-[var(--text-faint)] text-sm">
-            {pedido.clientes?.telefone ?? ""}
-            {pedido.clientes?.instagram ? ` · @${pedido.clientes.instagram}` : ""}
-          </p>
+          <div className="flex items-center gap-3 text-sm text-[var(--text-faint)]">
+            {pedido.clientes?.telefone && <span>{pedido.clientes.telefone}</span>}
+            {pedido.clientes?.instagram && (
+              <span>@{pedido.clientes.instagram}</span>
+            )}
+            {vendedorNome && (
+              <Badge color="amber">vendedor: {vendedorNome}</Badge>
+            )}
+          </div>
         </div>
-        <div className="flex gap-1.5">
-          {STATUS_OPCOES.map((s) => (
-            <button
-              key={s}
-              onClick={() => mudarStatus(s)}
-              disabled={mudandoStatus}
-              className={`px-2.5 py-1 rounded-full text-[11px] border capitalize ${
-                status === s
-                  ? "border-[var(--amber)] bg-[var(--amber-dim)]/30 text-[var(--amber)]"
-                  : "border-[var(--border-light)] text-[var(--text-faint)]"
-              }`}
-            >
-              {s.replace("_", " ")}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/pedidos/${pedido.id}/editar`}
+            className="p-2 rounded-lg border border-[var(--border-light)] text-[var(--text-faint)] hover:text-[var(--amber)] hover:border-[var(--amber)] transition-colors"
+            title="Editar pedido"
+          >
+            <Pencil size={14} />
+          </Link>
+          <div className="flex gap-1.5">
+            {STATUS_OPCOES.map((s) => (
+              <button
+                key={s}
+                onClick={() => mudarStatus(s)}
+                disabled={mudandoStatus}
+                className={`px-2.5 py-1 rounded-full text-[11px] border capitalize ${
+                  status === s
+                    ? "border-[var(--amber)] bg-[var(--amber-dim)]/30 text-[var(--amber)]"
+                    : "border-[var(--border-light)] text-[var(--text-faint)]"
+                }`}
+              >
+                {s.replace("_", " ")}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -171,7 +188,10 @@ export default function PedidoDetalheClient({
             </div>
             <div className="flex gap-1.5">
               <Input type="number" value={valorPagamento} onChange={setValorPagamento} suffix="R$" />
-              <Select value={formaPagamento} onChange={(v) => setFormaPagamento(v as PagamentoForma)}>
+              <Select
+                value={formaPagamento}
+                onChange={(v) => setFormaPagamento(v as PagamentoForma)}
+              >
                 <option value="pix">Pix</option>
                 <option value="dinheiro">Dinheiro</option>
                 <option value="cartao">Cartão</option>
@@ -179,7 +199,12 @@ export default function PedidoDetalheClient({
               </Select>
             </div>
             <div className="mt-2">
-              <Btn variant="ghost" full onClick={registrarPagamento} disabled={salvandoPagamento}>
+              <Btn
+                variant="ghost"
+                full
+                onClick={registrarPagamento}
+                disabled={salvandoPagamento}
+              >
                 <Plus size={13} /> Registrar
               </Btn>
             </div>
