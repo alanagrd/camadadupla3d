@@ -2,13 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, Btn } from "@/components/ui";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import type { Pedido, PedidoItem, Cliente, ContaCrianca } from "@/lib/types";
+import type { Pedido, PedidoItem, Pagamento, Cliente, ContaCrianca } from "@/lib/types";
 import PedidosListClient from "@/components/PedidosListClient";
 
 export default async function PedidosPage() {
   const supabase = await createClient();
 
-  const [{ data: pedidos }, { data: itens }, { data: criancas }] =
+  const [{ data: pedidos }, { data: itens }, { data: pagamentos }, { data: criancas }] =
     await Promise.all([
       supabase
         .from("pedidos")
@@ -16,6 +16,7 @@ export default async function PedidosPage() {
         .order("created_at", { ascending: false })
         .returns<(Pedido & { clientes: Cliente | null })[]>(),
       supabase.from("pedido_itens").select("*").returns<PedidoItem[]>(),
+      supabase.from("pagamentos").select("*").returns<Pagamento[]>(),
       supabase
         .from("contas_criancas")
         .select("*")
@@ -43,6 +44,7 @@ export default async function PedidosPage() {
         <PedidosListClient
           pedidos={pedidos ?? []}
           itens={itens ?? []}
+          pagamentos={pagamentos ?? []}
           criancas={criancas ?? []}
         />
         {(pedidos ?? []).length === 0 && (

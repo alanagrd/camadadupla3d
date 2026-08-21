@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui";
 import { brl } from "@/lib/calc";
 import { Pencil, X } from "lucide-react";
 import Link from "next/link";
-import type { Pedido, PedidoItem, Cliente, ContaCrianca } from "@/lib/types";
+import type { Pedido, PedidoItem, Pagamento, Cliente, ContaCrianca } from "@/lib/types";
 
 const STATUS_COR: Record<string, "amber" | "green" | "muted" | "red"> = {
   novo: "amber",
@@ -20,10 +20,12 @@ const STATUS_COR: Record<string, "amber" | "green" | "muted" | "red"> = {
 export default function PedidosListClient({
   pedidos,
   itens,
+  pagamentos,
   criancas,
 }: {
   pedidos: (Pedido & { clientes: Cliente | null })[];
   itens: PedidoItem[];
+  pagamentos: Pagamento[];
   criancas: ContaCrianca[];
 }) {
   const router = useRouter();
@@ -46,7 +48,7 @@ export default function PedidosListClient({
         <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase text-[var(--text-faint)]">
           <th className="p-3">Cliente</th>
           <th className="p-3">Vendedor</th>
-          <th className="p-3">Canal</th>
+          <th className="p-3">Pagamento</th>
           <th className="p-3">Prazo</th>
           <th className="p-3">Total</th>
           <th className="p-3">Status</th>
@@ -60,6 +62,15 @@ export default function PedidosListClient({
             (acc, i) => acc + i.preco_unitario * i.quantidade,
             0
           );
+          const totalPago = pagamentos
+            .filter((pg) => pg.pedido_id === p.id && pg.status === "pago")
+            .reduce((acc, pg) => acc + pg.valor, 0);
+          const pagamento =
+            total > 0 && totalPago >= total
+              ? { label: "Pago", cor: "green" as const }
+              : totalPago > 0
+              ? { label: "Parcial", cor: "amber" as const }
+              : { label: "Não pago", cor: "muted" as const };
           const vendedor = criancas.find((c) => c.id === p.vendedor_id);
           return (
             <tr
@@ -77,8 +88,8 @@ export default function PedidosListClient({
               <td className="p-3 text-[var(--text-muted)]">
                 {vendedor?.nome ?? <span className="text-[var(--text-faint)]">—</span>}
               </td>
-              <td className="p-3 text-[var(--text-muted)] capitalize">
-                {p.canal ?? "—"}
+              <td className="p-3">
+                <Badge color={pagamento.cor}>{pagamento.label}</Badge>
               </td>
               <td className="p-3 text-[var(--text-muted)]">
                 {p.prazo_entrega
