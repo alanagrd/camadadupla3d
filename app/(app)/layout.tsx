@@ -12,6 +12,7 @@ import {
   Settings2,
   Layers,
   LogOut,
+  Calculator,
 } from "lucide-react";
 
 const NAV = [
@@ -21,6 +22,7 @@ const NAV = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/estoque", label: "Estoque", icon: Boxes },
   { href: "/contas", label: "Contas das crianças", icon: PiggyBank },
+  { href: "/calculadora", label: "Calculadora", icon: Calculator },
   { href: "/configuracoes", label: "Configurações", icon: Settings2 },
 ];
 
