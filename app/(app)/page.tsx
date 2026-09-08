@@ -11,15 +11,33 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { brl } from "@/lib/calc";
+import SeletorMes from "@/components/SeletorMes";
 import type { Pedido, Filamento, PedidoItem, Pagamento, ContaCrianca } from "@/lib/types";
 
 const ESTOQUE_BAIXO_G = 150;
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
   const supabase = await createClient();
 
   const now = new Date();
-  const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const mesParam = (await searchParams).mes;
+  const [anoSel, mesSel] =
+    mesParam && /^\d{4}-\d{2}$/.test(mesParam)
+      ? [Number(mesParam.slice(0, 4)), Number(mesParam.slice(5, 7)) - 1]
+      : [now.getFullYear(), now.getMonth()];
+
+  const inicioMes = new Date(anoSel, mesSel, 1).toISOString();
+  const fimMes = new Date(anoSel, mesSel + 1, 1).toISOString();
+  const mesLabel = new Date(anoSel, mesSel, 1).toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+  const mesValor = `${anoSel}-${String(mesSel + 1).padStart(2, "0")}`;
+  const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const [
     { data: pedidosAbertos },
@@ -55,6 +73,7 @@ export default async function DashboardPage() {
       .select("valor")
       .eq("status", "pago")
       .gte("created_at", inicioMes)
+      .lt("created_at", fimMes)
       .returns<Pick<Pagamento, "valor">[]>(),
     // produtos ativos
     supabase.from("produtos").select("id").eq("ativo", true),
@@ -66,8 +85,10 @@ export default async function DashboardPage() {
 
   const filamentosBaixos = (filamentos ?? []).filter((f) => f.estoque_g < ESTOQUE_BAIXO_G);
 
-  // Pedidos do mês
-  const pedidosMes = (todosPedidos ?? []).filter((p) => p.created_at >= inicioMes);
+  // Pedidos do mês selecionado
+  const pedidosMes = (todosPedidos ?? []).filter(
+    (p) => p.created_at >= inicioMes && p.created_at < fimMes
+  );
   const idsPedidosMes = new Set(pedidosMes.map((p) => p.id));
 
   // Itens do mês
@@ -79,12 +100,10 @@ export default async function DashboardPage() {
   const totalRecebidoMes = (pagamentosMes ?? []).reduce((acc, p) => acc + p.valor, 0);
   const pedidosEntregues = (todosPedidos ?? []).filter((p) => p.status === "entregue").length;
 
-  // Vendas por criança (total histórico)
-  const idsTodosPedidos = new Set((todosPedidos ?? []).map((p) => p.id));
+  // Vendas por criança — no mês selecionado
   const vendasPorCrianca = (criancas ?? []).map((c) => {
-    const pedidosDaCrianca = (todosPedidos ?? []).filter((p) => p.vendedor_id === c.id);
-    const ids = new Set(pedidosDaCrianca.map((p) => p.id));
-    const vendas = (todosItens ?? [])
+    const ids = new Set(pedidosMes.filter((p) => p.vendedor_id === c.id).map((p) => p.id));
+    const vendas = itensMes
       .filter((i) => ids.has(i.pedido_id))
       .reduce((acc, i) => acc + i.preco_unitario * i.quantidade, 0);
     return { ...c, vendas };
@@ -93,10 +112,15 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="font-display font-bold text-xl mb-1">Dashboard</h1>
-      <p className="text-[var(--text-faint)] text-sm mb-6">
-        camadadupla3D — visão geral
-      </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="font-display font-bold text-xl mb-1">Dashboard</h1>
+          <p className="text-[var(--text-faint)] text-sm">
+            camadadupla3D — visão geral
+          </p>
+        </div>
+        <SeletorMes mes={mesValor} atual={mesAtual} />
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4 mb-4">
@@ -110,7 +134,7 @@ export default async function DashboardPage() {
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs mb-2">
-            <TrendingUp size={14} /> Vendas este mês
+            <TrendingUp size={14} /> Vendas do mês
           </div>
           <div className="font-display text-2xl font-bold text-[var(--amber)]">
             {brl(totalVendasMes)}
@@ -118,7 +142,7 @@ export default async function DashboardPage() {
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs mb-2">
-            <Wallet size={14} /> Recebido este mês
+            <Wallet size={14} /> Recebido do mês
           </div>
           <div className="font-display text-2xl font-bold text-[var(--green)]">
             {brl(totalRecebidoMes)}
@@ -173,7 +197,7 @@ export default async function DashboardPage() {
       {vendasPorCrianca.some((c) => c.vendas > 0) && (
         <Card className="p-4 mb-6">
           <h2 className="font-display font-semibold text-sm mb-4">
-            Vendas por criança — total histórico
+            Vendas por criança — {mesLabel}
           </h2>
           <div className="flex flex-col gap-3">
             {vendasPorCrianca.map((c) => (
