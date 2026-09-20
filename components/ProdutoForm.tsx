@@ -104,6 +104,11 @@ export default function ProdutoForm({
       preco_manual: precoManual === "" ? null : parseFloat(precoManual.replace(",", ".")),
       ativo: true,
       created_at: "",
+      categoria: null,
+      descricao_publica: null,
+      no_catalogo: false,
+      foto_url: null,
+      preco_catalogo: null,
     };
     const componentesCalc = componentes
       .filter((c) => c.filamento_id)
