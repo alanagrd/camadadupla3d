@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Input, Label, Btn, Select, SectionTitle } from "@/components/ui";
 import { calcularProduto, brl, minutosParaHMM, parseTempoParaMinutos, numParse } from "@/lib/calc";
-import { Plus, Trash2, Calculator, Save, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Calculator, Save, CheckCircle2, AlertTriangle, ShoppingBag, ImagePlus } from "lucide-react";
 import type {
   Produto,
   ProdutoComponente,
@@ -78,6 +78,16 @@ export default function ProdutoForm({
     InsumoSelecionado[]
   >(insumosExistentes?.map((i) => ({ insumo_id: i.insumo_id, qtd: String(i.qtd) })) ?? []);
 
+  // Catálogo
+  const [noCatalogo, setNoCatalogo] = useState(produtoExistente?.no_catalogo ?? false);
+  const [categoria, setCategoria] = useState(produtoExistente?.categoria ?? "");
+  const [descricaoPublica, setDescricaoPublica] = useState(produtoExistente?.descricao_publica ?? "");
+  const [fotoUrl, setFotoUrl] = useState(produtoExistente?.foto_url ?? "");
+  const [precoCatalogo, setPrecoCatalogo] = useState(
+    produtoExistente?.preco_catalogo != null ? String(produtoExistente.preco_catalogo) : ""
+  );
+  const [uploadando, setUploadando] = useState(false);
+
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -147,6 +157,20 @@ export default function ProdutoForm({
     }
   }
 
+  async function uploadFoto(file: File) {
+    setUploadando(true);
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage
+      .from("catalogo-fotos")
+      .upload(filename, file, { upsert: false });
+    if (!error) {
+      const { data } = supabase.storage.from("catalogo-fotos").getPublicUrl(filename);
+      setFotoUrl(data.publicUrl);
+    }
+    setUploadando(false);
+  }
+
   async function salvar() {
     setSalvando(true);
     setErro(null);
@@ -160,6 +184,11 @@ export default function ProdutoForm({
       margem_personalizada:
         margemPersonalizada === "" ? null : parseFloat(margemPersonalizada.replace(",", ".")),
       preco_manual: precoManual === "" ? null : parseFloat(precoManual.replace(",", ".")),
+      no_catalogo: noCatalogo,
+      categoria: noCatalogo ? categoria || null : null,
+      descricao_publica: noCatalogo ? descricaoPublica || null : null,
+      foto_url: noCatalogo ? fotoUrl || null : null,
+      preco_catalogo: noCatalogo && precoCatalogo !== "" ? parseFloat(precoCatalogo.replace(",", ".")) : null,
     };
 
     let produtoId = produtoExistente?.id;
@@ -337,6 +366,86 @@ export default function ProdutoForm({
             <Label>Ou fixar preço manual</Label>
             <Input type="number" value={precoManual} onChange={setPrecoManual} suffix="R$" />
           </div>
+        </div>
+
+
+        <div className="h-px bg-[var(--border)] my-4" />
+
+        {/* Seção catálogo */}
+        <div className="rounded-xl border border-[var(--border)] p-4 mb-4" style={{ background: noCatalogo ? "var(--amber-dim, rgba(245,158,11,0.07))" : undefined }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <ShoppingBag size={14} className="text-[var(--amber)]" />
+              <span className="text-[13px] font-semibold">Incluir no catálogo público</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNoCatalogo(!noCatalogo)}
+              className={`relative w-10 h-5.5 rounded-full transition-colors flex items-center ${noCatalogo ? "bg-[var(--amber)]" : "bg-[var(--border)]"}`}
+              style={{ width: 40, height: 22 }}
+            >
+              <span
+                className="absolute w-4 h-4 bg-white rounded-full shadow transition-transform"
+                style={{ transform: noCatalogo ? "translateX(20px)" : "translateX(2px)", width: 16, height: 16 }}
+              />
+            </button>
+          </div>
+
+          {noCatalogo && (
+            <div className="flex flex-col gap-3">
+              <div>
+                <Label>Categoria</Label>
+                <Select value={categoria} onChange={setCategoria}>
+                  <option value="">Selecione...</option>
+                  {["Organizadores","Brinquedos","Natal","Decoração","Educacional","Personalizado","Outros"].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label>Preço de venda (visível no catálogo)</Label>
+                <Input type="number" value={precoCatalogo} onChange={setPrecoCatalogo} suffix="R$"
+                  placeholder={`Sugerido: ${resultado.precoSugerido.toFixed(2)}`} />
+                <p className="text-[11px] text-[var(--text-faint)] mt-1">
+                  Deixe vazio para usar o preço sugerido ({brl(resultado.precoSugerido)})
+                </p>
+              </div>
+              <div>
+                <Label>Descrição para o cliente</Label>
+                <textarea
+                  value={descricaoPublica}
+                  onChange={e => setDescricaoPublica(e.target.value)}
+                  placeholder="Ex: Tag escolar personalizada com nome. Perfeita para identificar mochilas, garrafinhas e estojo!"
+                  rows={3}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--amber)] resize-none"
+                />
+              </div>
+              <div>
+                <Label>Foto do produto</Label>
+                {fotoUrl && (
+                  <div className="relative mb-2 w-32 h-32 rounded-lg overflow-hidden border border-[var(--border)]">
+                    <img src={fotoUrl} alt="foto" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setFotoUrl("")}
+                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                    >✕</button>
+                  </div>
+                )}
+                <label className="flex items-center gap-2 cursor-pointer border border-dashed border-[var(--border)] rounded-lg p-3 text-[13px] text-[var(--text-muted)] hover:border-[var(--amber)] transition-colors">
+                  <ImagePlus size={16} />
+                  {uploadando ? "Enviando..." : fotoUrl ? "Trocar foto" : "Escolher foto do computador"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadando}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadFoto(f); e.target.value = ""; }}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {erro && <p className="text-[var(--red)] text-xs mb-3">{erro}</p>}

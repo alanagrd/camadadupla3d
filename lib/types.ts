@@ -43,6 +43,12 @@ export interface Produto {
   preco_manual: number | null;
   ativo: boolean;
   created_at: string;
+  // Catálogo
+  categoria: string | null;
+  descricao_publica: string | null;
+  no_catalogo: boolean;
+  foto_url: string | null;
+  preco_catalogo: number | null;
 }
 
 export interface ProdutoComponente {
