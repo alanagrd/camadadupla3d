@@ -377,7 +377,13 @@ export default function ProdutoForm({
         <div className="h-px bg-[var(--border)] my-4" />
 
         {/* Seção catálogo */}
-        <div className="rounded-xl border border-[var(--border)] p-4 mb-4" style={{ background: noCatalogo ? "var(--amber-dim, rgba(245,158,11,0.07))" : undefined }}>
+        <div
+          className="rounded-xl border p-4 mb-4 transition-colors"
+          style={{
+            borderColor: noCatalogo ? "var(--amber-dim)" : "var(--border)",
+            background: noCatalogo ? "rgba(242,169,59,0.055)" : undefined,
+          }}
+        >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <ShoppingBag size={14} className="text-[var(--amber)]" />
