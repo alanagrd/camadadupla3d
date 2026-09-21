@@ -13,6 +13,7 @@ import {
   Layers,
   LogOut,
   Calculator,
+  Store,
 } from "lucide-react";
 
 const NAV = [
@@ -23,6 +24,7 @@ const NAV = [
   { href: "/estoque", label: "Estoque", icon: Boxes },
   { href: "/contas", label: "Contas das crianças", icon: PiggyBank },
   { href: "/calculadora", label: "Calculadora", icon: Calculator },
+  { href: "/catalogo", label: "Catálogo", icon: Store, externa: true },
   { href: "/configuracoes", label: "Configurações", icon: Settings2 },
 ];
 
@@ -53,10 +55,17 @@ export default async function AppLayout({
             <Link
               key={item.href}
               href={item.href}
+              target={item.externa ? "_blank" : undefined}
+              rel={item.externa ? "noopener noreferrer" : undefined}
               className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] transition-colors"
             >
               <item.icon size={15} />
               {item.label}
+              {item.externa && (
+                <span className="ml-auto text-[9px] uppercase tracking-wide text-[var(--text-faint)]">
+                  público
+                </span>
+              )}
             </Link>
           ))}
         </nav>
