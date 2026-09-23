@@ -7,10 +7,8 @@ export default async function CatalogoPage() {
   const supabase = await createClient();
   const { data: produtos } = await supabase
     .schema("camadadupla")
-    .from("produtos")
-    .select("id, nome, categoria, descricao_publica, foto_url, preco_catalogo, preco_manual")
-    .eq("no_catalogo", true)
-    .eq("ativo", true)
+    .from("catalogo_publico")
+    .select("id, nome, categoria, descricao_publica, foto_url, preco")
     .order("categoria", { ascending: true })
     .order("nome", { ascending: true });
 

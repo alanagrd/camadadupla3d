@@ -8,8 +8,7 @@ interface ProdutoCatalogo {
   categoria: string | null;
   descricao_publica: string | null;
   foto_url: string | null;
-  preco_catalogo: number | null;
-  preco_manual: number | null;
+  preco: number | null;
 }
 
 const CAT_CORES: Record<string, { bg: string; text: string }> = {
@@ -111,7 +110,7 @@ export default function CatalogoPublico({ produtos }: { produtos: ProdutoCatalog
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 20 }}>
             {visiveis.map(p => {
-              const preco = p.preco_catalogo ?? p.preco_manual;
+              const preco = p.preco;
               const catNome = p.categoria ?? "Outros";
               const cores = CAT_CORES[catNome] ?? { bg: "#F3F4F6", text: "#374151" };
               return (
