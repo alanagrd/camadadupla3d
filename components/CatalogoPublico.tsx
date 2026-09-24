@@ -15,6 +15,7 @@ const CAT_CORES: Record<string, { bg: string; text: string }> = {
   "Organizadores":  { bg: "#DBEAFE", text: "#1D4ED8" },
   "Brinquedos":     { bg: "#EDE9FE", text: "#6D28D9" },
   "Natal":          { bg: "#FEE2E2", text: "#B91C1C" },
+  "Kits de Natal":  { bg: "#DCFCE7", text: "#15803D" },
   "Decoração":      { bg: "#D1FAE5", text: "#065F46" },
   "Educacional":    { bg: "#CCFBF1", text: "#0F766E" },
   "Personalizado":  { bg: "#FEF3C7", text: "#92400E" },
